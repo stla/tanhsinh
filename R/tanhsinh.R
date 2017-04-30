@@ -1,0 +1,108 @@
+
+#' Title
+#'
+#' @param f
+#' @param lower
+#' @param upper
+#' @param ... additional arguments passed to \code{f}
+#' @param abstol
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' # approximate pi/4
+#' f <- function(x) sqrt(1-x^2)
+#' result <- tanhsinh(f, 0, 1, abstol=1e-8)
+#' result - pi/4
+#' # Gauss integral
+#' f <- function(x) exp(-x*x)
+#' result <- tanhsinh(f, 0, Inf)
+#' result - sqrt(pi)/2
+#' result <- tanhsinh(f, -Inf, Inf)
+#' result - sqrt(pi)
+#' # singularity at 1
+#' f <- function(x) exp(x)/sqrt(1-x)
+#' result <- tanhsinh(f, 0, 1)
+#' result - exp(1)*sqrt(pi)*(2*pnorm(sqrt(2))-1)
+#' # Owen T-function at h=a=0.5
+#' f <- function(x) exp (-0.25*(1+x*x)/2) /(1+x*x)
+#' result <- tanhsinh(f, 0, 0.5)
+#' result - 0.40519384189197524877
+#' # Owen Q-function
+#' f <- function(x, nu, delta, t){
+#'   pnorm(t*x/sqrt(nu) - delta) *
+#'     exp((nu-1)*log(x) - x*x/2 - ((nu/2)-1) * log(2) - lgamma(nu/2))
+#' }
+#' result <- tanhsinh(f, 0, 5, nu=10, delta=2, t=3)
+#' result - 0.77383547873740988537
+#' # Bessel K function
+#' f <- function(x) x*besselK(x,0)^4
+#' result <- tanhsinh(f, 0, Inf)
+#' result - 7*1.2020569031595942854/8
+tanhsinh <- function(f, lower, upper, ..., abstol=1e-16){
+  if(lower > upper){
+    stop("`lower`>`upper` is not allowed")
+  }
+  if(lower==-Inf && upper<Inf){
+    return(tanhsinh(function(x) f(-x), lower=-upper, upper=Inf, ..., abstol=abstol))
+  }
+  if(upper==Inf){
+    if(lower>-1){
+      g <- function(y) f(y, ...)
+      ff <- function(x){
+        g(x/(1-x))/(1-x)/(1-x)
+      }
+      upper <- 1
+      lower <- lower/(1+lower)
+    }else{
+      g <- function(y) f(y, ...)
+      ff <- function(x){
+        (1+tan(x)*tan(x))*g(tan(x))
+      }
+      upper <- pi/2
+      lower <- atan(lower)
+    }
+  }else{
+    ff <- function(x) f(x, ...)
+  }
+  c <- (upper-lower)/2; d <- (lower+upper)/2
+  abstol <- abstol/c
+  integral <- ff(d)*halfpi
+  abcissas <- Abcissas[[1L]]
+  weights <- Weights[[1L]]
+  for(i in 1L:3L){
+    integral <- integral +
+      weights[i]*(ff(c*abcissas[i] + d) + ff(-c*abcissas[i] + d))
+  }
+  currentDelta <- Inf
+  h <- 1
+  for(l in 2L:9L){
+    abcissas <- Abcissas[[l]]
+    weights <- Weights[[l]]
+    h <- h/2
+    newContribution <- 0
+    for(i in 1L:layerSizes[l]){
+      newContribution <- newContribution +
+        weights[i]*(ff(c*abcissas[i] + d) + ff(-c*abcissas[i] + d));
+    }
+    newContribution <- newContribution*h
+    previousDelta <- currentDelta
+    currentDelta <- abs(integral/2 - newContribution)
+    integral <- integral/2 + newContribution
+    if(currentDelta == 0) break
+    r <- log(currentDelta)/log(previousDelta)
+    if(r > 1.9 && r < 2.1){
+      errorEstimate <- currentDelta*currentDelta
+    }else{
+      errorEstimate <- currentDelta
+    }
+    if(errorEstimate < 0.1*abstol) break
+  }
+  errorEstimate <- errorEstimate*c
+  evaluations <- nEvaluations[l]
+  out <- c*integral
+  attr(out, "error") <- errorEstimate
+  attr(out, "evaluations") <- evaluations
+  return(out)
+}

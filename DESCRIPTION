@@ -1,0 +1,13 @@
+Package: tanhsinh
+Type: Package
+Title: Numerical Integration with the tanh-sinh Quadrature
+Version: 0.1.0
+Date: 2017-04-30
+Author: Stéphane Laurent
+Maintainer: Stéphane Laurent <laurent_step@yahoo.fr>
+Description: Evaluates an integral via the tanh-sinh quadrature.
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+ByteCompile: true
+RoxygenNote: 6.0.1
