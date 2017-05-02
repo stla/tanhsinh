@@ -2,7 +2,7 @@
 #' @title Integration via the tanh-sinh procedure
 #' @description Evaluates an integral with the tanh-sinh procedure.
 #'
-#' @param f
+#' @param f function to be integrated with respect to its first argument
 #' @param lower,upper the bounds of integration; infinite allowed
 #' @param ... additional arguments passed to \code{f}
 #' @param error error estimate requested
@@ -80,7 +80,7 @@ tanhsinh <- function(f, lower, upper, ..., error=1e-16){
   currentDelta <- Inf
   h <- 1
   out <- NULL
-  for(l in 2L:9L){
+  for(l in 2L:10L){
     abcissas <- Abcissas[[l]]
     weights <- Weights[[l]]
     h <- h/2
